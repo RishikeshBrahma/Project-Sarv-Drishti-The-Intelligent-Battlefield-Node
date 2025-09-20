@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>animated webpage</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Bitcount+Prop+Single:wght@100..900&family=Black+Ops+One&family=Noto+Sans+JP:wght@100..900&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <!-- <spline-viewer url="https://prod.spline.design/U9O6K7fXziMEU7Wu/scene.splinecode"></spline-viewer> -->
+    <model-viewer class="background" src="{% static 'brahmos.glb' %}" autoplay camera-controls></model-viewer>
+    <header>
+        <nav>
+            <ul class="navlink">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#about">About</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section>
+            <div class="hero">
+                <h1>Welcome to the Animated Webpage</h1>
+            </div>
+        </section>
+    </main>
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
+</body>
+
+</html>

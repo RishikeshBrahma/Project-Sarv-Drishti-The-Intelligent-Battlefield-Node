@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sarv-Drishti | Sahayak Node</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; }
+        #map { height: 100%; width: 100%; background-color: #f0f0f0; }
+        .unit-label { background: rgba(255, 255, 255, 0.8); border: 1px solid #ccc; border-radius: 4px; padding: 2px 5px; }
+        .threat-icon { filter: drop-shadow(0 0 3px rgba(239, 68, 68, 0.8)); }
+        #alert-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 300px;
+            max-height: 40%;
+            background-color: rgba(26, 26, 26, 0.85);
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            z-index: 1000;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column-reverse;
+        }
+        .alert-item {
+            padding: 10px 12px;
+            border-bottom: 1px solid #444;
+            font-size: 14px;
+            opacity: 0;
+            animation: fadeIn 0.5s forwards;
+        }
+        .alert-item:last-child { border-bottom: none; }
+        .alert-item strong { color: #ef4444; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        #speaker-icon {
+            position: absolute;
+            top: 15px;
+            right: 320px;
+            font-size: 20px;
+            color: #fBBF24;
+            z-index: 1001;
+            display: none;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        /* --- NEW: CSS FOR AUDIO ENABLE BUTTON --- */
+        #audio-enable-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2000;
+            padding: 15px 25px;
+            font-size: 18px;
+            font-weight: bold;
+            background-color: #fbbf24;
+            color: #1e293b;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div id="alert-panel"></div>
+    <div id="speaker-icon">🔊</div>
+    <!-- NEW: HTML FOR AUDIO ENABLE BUTTON -->
+    <button id="audio-enable-button">Click to Enable Audio</button>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        // --- 1. MAP INITIALIZATION ---
+        const map = L.map('map', { zoomControl: false }).setView([19.3149, 84.7941], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        // --- 2. ICON DEFINITIONS ---
+        const leadIcon = L.divIcon({ html: `<div style="font-size: 24px; color: #3b82f6; text-shadow: 0 0 3px #fff;">✪</div>`, className: 'custom-div-icon', iconSize: [30, 30], iconAnchor: [15, 15] });
+        const tankIcon = L.divIcon({ html: `<div title="Tank"><svg viewBox="0 0 24 24" width="28" height="28" fill="#ef4444"><path d="M21 9.49V9c0-1.1-.9-2-2-2h-6V5h3V3H8v2h3v2H5c-1.1 0-2 .9-2 2v.49c0 1.1.9 2 2 2v2c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2v-2c1.1 0 2-.9 2-2zm-2 2H5v-2h14v2z"/></svg></div>`, className: 'custom-div-icon threat-icon', iconSize: [30, 30], iconAnchor: [15, 15] });
+        const unknownThreatIcon = L.divIcon({ html: `<div title="Unknown Threat" style="font-size: 24px; color: #ef4444;">❓</div>`, className: 'custom-div-icon', iconSize: [30, 30], iconAnchor: [15, 15] });
+
+        function getUnitIcon(unitType) { return leadIcon; }
+        function getThreatIcon(threatType) {
+            switch (threatType.toUpperCase()) {
+                case 'TANK': return tankIcon;
+                default: return unknownThreatIcon;
+            }
+        }
+
+        // --- 3. DATA FETCHING AND MAP UPDATES ---
+        const friendlyLayer = L.layerGroup().addTo(map);
+        const threatLayer = L.layerGroup().addTo(map);
+
+        async function updateMap() {
+            try {
+                const response = await fetch('/api/v1/situation/');
+                const data = await response.json();
+                
+                friendlyLayer.clearLayers();
+                data.units.forEach(unit => {
+                    L.marker([unit.latitude, unit.longitude], { icon: getUnitIcon(unit.unit_type) })
+                     .bindTooltip(unit.unit_id, { permanent: true, direction: 'right', className: 'unit-label' })
+                     .addTo(friendlyLayer);
+                });
+
+                threatLayer.clearLayers();
+                data.threats.forEach(threat => {
+                    L.marker([threat.latitude, threat.longitude], { icon: getThreatIcon(threat.threat_type) })
+                     .bindTooltip(`${threat.threat_type}`, { permanent: false, direction: 'top' })
+                     .addTo(threatLayer);
+                });
+            } catch (error) { console.error("Error updating map:", error); }
+        }
+
+        // --- 4. ALERT POLLING AND DISPLAY LOGIC ---
+        const alertPanel = document.getElementById('alert-panel');
+        const speakerIcon = document.getElementById('speaker-icon');
+        let displayedAlertIds = new Set();
+        let alertQueue = [];
+        let isSpeaking = false;
+        let audioEnabled = false;
+
+        async function updateAlerts() {
+            if (!audioEnabled) return; // Don't fetch alerts until audio is enabled
+            try {
+                const response = await fetch('/api/v1/alerts/');
+                const alerts = await response.json();
+
+                alerts.forEach(alert => {
+                    if (!displayedAlertIds.has(alert.threat_id)) {
+                        displayedAlertIds.add(alert.threat_id);
+                        
+                        const alertEl = document.createElement('div');
+                        alertEl.className = 'alert-item';
+                        alertEl.innerHTML = alert.text.replace(/ALERT: (\w+),/, '<strong>$1</strong>,');
+                        alertPanel.prepend(alertEl);
+                        
+                        // NEW: Add to voice queue
+                        console.log(`[DEBUG] New alert received. Adding to queue: "${alert.text}"`);
+                        alertQueue.push(alert.text);
+                    }
+                });
+                
+                processAlertQueue();
+
+            } catch (error) { console.error("Error fetching alerts:", error); }
+        }
+        
+        // --- 5. REFINED TTS FUNCTION AND QUEUE PROCESSOR ---
+        async function processAlertQueue() {
+            if (isSpeaking || alertQueue.length === 0) return;
+            isSpeaking = true;
+            speakerIcon.style.display = 'block';
+
+            const textToSpeak = alertQueue.shift();
+            console.log(`[DEBUG] Processing queue. Now speaking: "${textToSpeak}"`);
+            
+            try {
+                await playAlertSound(textToSpeak);
+            } catch (error) {
+                console.error("[DEBUG] Error during playback:", error);
+            } finally {
+                console.log("[DEBUG] Playback finished.");
+                speakerIcon.style.display = 'none';
+                isSpeaking = false;
+                setTimeout(processAlertQueue, 750); // Increased pause
+            }
+        }
+
+        function playAlertSound(text) {
+            return new Promise(async (resolve, reject) => {
+                console.log("[DEBUG] Requesting audio from TTS backend...");
+                try {
+                    const response = await fetch('/api/v1/tts/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: text })
+                    });
+                    if (!response.ok) {
+                        console.error("[DEBUG] TTS backend returned an error.");
+                        reject(`TTS service failed with status ${response.status}`);
+                        return;
+                    }
+                    const audioBlob = await response.blob();
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    const audio = new Audio(audioUrl);
+                    
+                    audio.onended = () => {
+                        console.log("[DEBUG] Audio clip finished playing.");
+                        resolve();
+                    };
+                    audio.onerror = (e) => {
+                        console.error("[DEBUG] An error occurred in the audio element:", e);
+                        reject(e);
+                    };
+
+                    console.log("[DEBUG] Audio received. Attempting to play...");
+                    audio.play().catch(e => {
+                        console.error("[DEBUG] Browser blocked audio playback:", e);
+                        reject(e); // Reject if the browser blocks play()
+                    });
+
+                } catch (error) { 
+                    console.error("[DEBUG] Critical error in playAlertSound function:", error);
+                    reject(error);
+                }
+            });
+        }
+
+        // --- 6. INITIALIZATION AND EVENT LISTENERS ---
+        const audioButton = document.getElementById('audio-enable-button');
+        audioButton.addEventListener('click', () => {
+            audioEnabled = true;
+            audioButton.style.display = 'none';
+            console.log("[DEBUG] Audio has been enabled by user click.");
+
+            // Start the polling loops once audio is enabled
+            updateMap();
+            updateAlerts();
+            setInterval(updateMap, 5000);
+            setInterval(updateAlerts, 3000);
+        });
+    });
+    </script>
+</body>
+</html>
+

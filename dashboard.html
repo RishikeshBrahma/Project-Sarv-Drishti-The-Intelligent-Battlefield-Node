@@ -1,0 +1,435 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sarv-Drishti | Command Center</title>
+  <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bitcount+Prop+Single:wght@100..900&family=Black+Ops+One&family=Noto+Sans+JP:wght@100..900&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'home.css' %}">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    /* Styles for the fullscreen map feature */
+    #map-container.fullscreen-map {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 9999;
+      border-radius: 0;
+    }
+
+    #close-fullscreen {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 10000;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      border: 2px solid white;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      font-size: 24px;
+      font-weight: bold;
+      line-height: 36px;
+      text-align: center;
+      cursor: pointer;
+      display: none;
+    }
+
+    #map-container.fullscreen-map #close-fullscreen {
+      display: block;
+    }
+
+    /* Styles for fullscreen video feed */
+    .live-feed-box.fullscreen-video {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 9999;
+      border-radius: 0;
+      background: black;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .live-feed-box.fullscreen-video .feed-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .live-feed-box.fullscreen-video #pi-video-feed {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    .live-feed-box.fullscreen-video h3 {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: white;
+      z-index: 10000;
+    }
+
+    #close-video-fullscreen {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 10000;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      border: 2px solid white;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      font-size: 24px;
+      font-weight: bold;
+      line-height: 36px;
+      text-align: center;
+      cursor: pointer;
+      display: none;
+    }
+
+    .live-feed-box.fullscreen-video #close-video-fullscreen {
+      display: block;
+    }
+
+    .feed-controls {
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    .refresh-btn {
+      background: #00ffaa;
+      color: #02040a;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(0, 255, 170, 0.5);
+      transition: all 0.3s ease;
+    }
+
+    .refresh-btn:hover {
+      background: #02040a;
+      color: #00ffaa;
+      box-shadow: 0 0 15px rgba(0, 255, 170, 0.8);
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Background Video for the dashboard -->
+  <video autoplay muted loop id="bg-video">
+    <source src="{% static 'bg.mp4' %}" type="video/mp4">
+  </video>
+  <header>
+    <div class="logo"><img src="{% static 'logo.jpg' %}" alt="Logo"></div>
+    <nav>
+      <ul class="navlink">
+        <!-- This link correctly points back to your landing page -->
+        <li><a href="{% url 'home' %}">Home</a></li>
+        <li><a href="#">About</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <section class="hero-dashboard">
+    <div class="content-dashboard">
+      <h1 class="title">Project Sarv-Drishti: The Intelligent Battlefield Node</h1>
+      <h2 class="subtitle" id="typing"></h2>
+      <h4 class="tagline">AI-powered threat detection and real-time battlefield intelligence.</h4>
+
+      <div class="box-container">
+        <!-- Left Box: Live Alerts -->
+        <div class="info-box alert-box">
+          <div class="alert-header">
+            <h3>Recent Alerts</h3>
+            <div id="speaker-icon">🔊</div>
+          </div>
+          <div id="alert-list">
+            <p class="initial-message">System armed. Awaiting first threat detection to initialize audio...</p>
+            <!-- Alerts will be dynamically loaded here -->
+          </div>
+        </div>
+
+        <!-- Center Box: Live Tactical Map -->
+        <div class="info-box map-box" id="map-container">
+          <div id="map"></div>
+          <div id="close-fullscreen">&times;</div>
+        </div>
+
+        <!-- MODIFIED SECTION: AI Assistant replaced with Live Feed -->
+        <div class="info-box live-feed-box" id="live-feed-container">
+            <h3>Live Camera Feed</h3>
+            <div class="feed-container">
+                <!-- This img tag points directly to your Pi's video stream -->
+                <img id="pi-video-feed" src="http://10.254.180.87:5000/video_feed" alt="Live feed from Raspberry Pi"
+                    onerror="clearAlerts(); this.onerror=null;" 
+                    onload="clearAlerts();"
+                    onclick="toggleVideoFullscreen()"
+                    style="cursor: pointer;"
+                    title="Click to view fullscreen">
+            </div>
+            <button id="close-video-fullscreen" onclick="exitVideoFullscreen()">×</button>
+            <div class="feed-controls">
+                <button onclick="refreshVideoFeed()" class="refresh-btn">Restart Video Feed</button>
+            </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // All your existing JavaScript for the map and alerts remains here...
+    document.addEventListener('DOMContentLoaded', function () {
+      const map = L.map('map', { zoomControl: false }).setView([19.3149, 84.7941], 15);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap'
+      }).addTo(map);
+      L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+      // --- ICON DEFINITIONS ---
+      const leadIcon = L.divIcon({ html: `<div style="font-size: 24px; color: #3b82f6; text-shadow: 0 0 3px #fff;">✪</div>`, className: 'custom-div-icon', iconSize: [30, 30], iconAnchor: [15, 15] });
+      const ThreatIcon = L.Icon.extend({
+        options: {
+          iconSize: [40, 40], iconAnchor: [20, 20],
+          popupAnchor: [0, -20], className: 'threat-icon'
+        }
+      });
+      const tankIcon = new ThreatIcon({ iconUrl: '{% static "icons/tank.png" %}' });
+      const helicopterIcon = new ThreatIcon({ iconUrl: '{% static "icons/helicopter.png" %}' });
+      const droneIcon = new ThreatIcon({ iconUrl: '{% static "icons/drone.png" %}' });
+      const fighterjetIcon = new ThreatIcon({ iconUrl: '{% static "icons/fighterjet.png" %}' });
+      const unknownIcon = new ThreatIcon({ iconUrl: '{% static "icons/unknown.png" %}' });
+      
+      function getUnitIcon(unitType) { return leadIcon; }
+      function getThreatIcon(threatType) {
+        switch (threatType.toUpperCase()) {
+          case 'TANK': return tankIcon;
+          case 'HELICOPTER': return helicopterIcon;
+          case 'DRONE': return droneIcon;
+          case 'FIGHTERJET': return fighterjetIcon;
+          default: return unknownIcon;
+        }
+      }
+
+      const friendlyLayer = L.layerGroup().addTo(map);
+      const threatLayer = L.layerGroup().addTo(map);
+
+      async function updateMap() {
+        try {
+          const response = await fetch('/api/v1/situation/');
+          const data = await response.json();
+          friendlyLayer.clearLayers();
+          data.units.forEach(unit => {
+            L.marker([unit.latitude, unit.longitude], { icon: getUnitIcon(unit.unit_type) })
+              .bindTooltip(unit.unit_id, { permanent: true, direction: 'right', className: 'unit-label' })
+              .addTo(friendlyLayer);
+          });
+          threatLayer.clearLayers();
+          data.threats.forEach(threat => {
+            L.marker([threat.latitude, threat.longitude], { icon: getThreatIcon(threat.threat_type) })
+              .bindTooltip(`${threat.threat_type}`, { permanent: false, direction: 'top' })
+              .addTo(threatLayer);
+          });
+        } catch (error) { console.error("Error updating map:", error); }
+      }
+
+      // --- ALERT LOGIC ---
+      const alertList = document.getElementById('alert-list');
+      const speakerIcon = document.getElementById('speaker-icon');
+      let alertQueue = [];
+      let isSpeaking = false;
+      let audioInitialized = false;
+
+      async function updateAlerts() {
+        try {
+          const response = await fetch('/api/v1/alerts/');
+          const alerts = await response.json();
+          alertList.innerHTML = '';
+          if (alerts.length > 0 && !audioInitialized) {
+            audioInitialized = true;
+            const initialMsg = alertList.querySelector('.initial-message');
+            if (initialMsg) initialMsg.style.display = 'none';
+          }
+          alerts.forEach(alert => {
+            // If alert is a string, display as is. If object, display profile or text.
+            let alertText = alert.text || alert.profile || JSON.stringify(alert);
+            alertQueue.push(alertText);
+            const alertEl = document.createElement('div');
+            alertEl.className = 'alert-item';
+            alertEl.innerHTML = alertText.replace(/ALERT: (\w+),/, '<strong>$1</strong>,');
+            alertList.appendChild(alertEl);
+          });
+          processAlertQueue();
+        } catch (error) { console.error("Error fetching alerts:", error); }
+      }
+
+      async function processAlertQueue() {
+        if (isSpeaking || alertQueue.length === 0) return;
+        isSpeaking = true;
+        speakerIcon.style.display = 'block';
+        const textToSpeak = alertQueue.shift();
+        try {
+          await playAlertSound(textToSpeak);
+        } catch (error) {
+          console.error("Error during playback:", error);
+        } finally {
+          speakerIcon.style.display = 'none';
+          isSpeaking = false;
+          setTimeout(processAlertQueue, 750);
+        }
+      }
+
+      function playAlertSound(text) {
+        return new Promise(async (resolve, reject) => {
+          try {
+            const response = await fetch('/api/v1/tts/', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ text: text })
+            });
+            if (!response.ok) throw new Error(`TTS service failed`);
+            const audioBlob = await response.blob();
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audio = new Audio(audioUrl);
+            audio.onended = resolve;
+            audio.onerror = reject;
+            audio.play().catch(reject);
+          } catch (error) { reject(error); }
+        });
+      }
+
+      // --- INITIALIZATION ---
+      updateMap();
+      updateAlerts();
+      setInterval(updateMap, 3000);
+      setInterval(updateAlerts, 5000);
+
+      // --- FULLSCREEN MAP LOGIC ---
+      const mapContainer = document.getElementById('map-container');
+      const closeFullscreenBtn = document.getElementById('close-fullscreen');
+      mapContainer.addEventListener('click', (event) => {
+        if (!mapContainer.classList.contains('fullscreen-map')) {
+          mapContainer.classList.add('fullscreen-map');
+          setTimeout(() => map.invalidateSize(), 150);
+        }
+      });
+      closeFullscreenBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        mapContainer.classList.remove('fullscreen-map');
+        setTimeout(() => map.invalidateSize(), 150);
+      });
+    });
+
+    // Your existing typing effect and clock JavaScript
+    const typingElement = document.getElementById("typing");
+    const text = [
+      "Intelligent Battlefield Node",
+      "AI Threat Classification",
+      "Real-Time Tactical Support"
+    ];
+    let index = 0;
+    let charIndex = 0;
+    function typeEffect() {
+      if (charIndex < text[index].length) {
+        typingElement.textContent += text[index].charAt(charIndex);
+        charIndex++;
+        setTimeout(typeEffect, 100);
+      } else {
+        setTimeout(eraseEffect, 2000);
+      }
+    }
+    function eraseEffect() {
+      if (charIndex > 0) {
+        typingElement.textContent = text[index].substring(0, charIndex - 1);
+        charIndex--;
+        setTimeout(eraseEffect, 50);
+      } else {
+        index = (index + 1) % text.length;
+        setTimeout(typeEffect, 500);
+      }
+    }
+    document.addEventListener("DOMContentLoaded", () => {
+      typeEffect();
+      // updateClock(); // Assuming clock function exists in your home.js
+    });
+
+    // Function to clear all alerts from the system
+    async function clearAlerts() {
+      try {
+        const response = await fetch('/api/v1/clear-alerts/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        if (response.ok) {
+          // Clear the alert list UI
+          const alertList = document.getElementById('alert-list');
+          alertList.innerHTML = '<p class="initial-message">System armed. Awaiting first threat detection to initialize audio...</p>';
+          // Reset alert queue and audio state
+          alertQueue = [];
+          isSpeaking = false;
+          audioInitialized = false;
+        }
+      } catch (error) {
+        console.error("Error clearing alerts:", error);
+      }
+    }
+
+    // Function to refresh the video feed
+    function refreshVideoFeed() {
+      const videoFeed = document.getElementById('pi-video-feed');
+      const currentSrc = videoFeed.src;
+      clearAlerts(); // Clear alerts when refreshing video feed
+      // Add a timestamp to force reload without using about:blank
+      videoFeed.src = currentSrc + (currentSrc.includes('?') ? '&' : '?') + 'reload=' + Date.now();
+    }
+
+    // Function to toggle video fullscreen
+    function toggleVideoFullscreen() {
+      const liveFeedBox = document.getElementById('live-feed-container');
+      liveFeedBox.classList.add('fullscreen-video');
+      document.body.style.overflow = 'hidden'; // Prevent scrolling
+    }
+
+    // Function to exit video fullscreen
+    function exitVideoFullscreen() {
+      const liveFeedBox = document.getElementById('live-feed-container');
+      liveFeedBox.classList.remove('fullscreen-video');
+      document.body.style.overflow = 'auto'; // Restore scrolling
+    }
+
+    // Close fullscreen on Escape key
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        const liveFeedBox = document.getElementById('live-feed-container');
+        if (liveFeedBox.classList.contains('fullscreen-video')) {
+          exitVideoFullscreen();
+        }
+      }
+    });
+  </script>
+</body>
+
+</html>
+

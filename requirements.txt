@@ -1,0 +1,9 @@
+django
+djangorestframework
+torch
+torchvision
+opencv-python
+ultralytics
+cryptography
+gTTS
+requests
