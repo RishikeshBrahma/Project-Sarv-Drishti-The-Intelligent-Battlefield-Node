@@ -1,5 +1,8 @@
-# Hackathon Project
-Sarv-Drishti is the intelligent, integrating layer designed to bridge the gap between high-level command systems and the soldier on the ground. This project aims to develop a holistic digital ecosystem that serves as a real-time, AI-powered information hub for frontline personnel.
+# Hackathon Project :Design a scalable, secure and intelligent digital ecosystem that can assist the Indian Armed Forces in real-time surveillance, secure communication, threat detection and soldier support in high-risk zones.
+
+Build AI-powered solutions that enhance military operations, protect our borders and ensure the safety of our Armed Forces in critical missions.
+
+#Sarv-Drishti is the intelligent, integrating layer designed to bridge the gap between high-level command systems and the soldier on the ground. This project aims to develop a holistic digital ecosystem that serves as a real-time, AI-powered information hub for frontline personnel.
 
 
 Google Drive link https://drive.google.com/drive/folders/1d5K1ARgDVSoYbfNKjFnCgRF25MlBjinR?zx=lj1gkim08lod
@@ -32,7 +35,7 @@ The Challenge:
 How do we deliver critical, actionable data from these powerful systems to the individual soldier in real-time, without creating a "human-delay loop" that hampers rapid decision-making?
 
 
-Project Sarv-Drishti: The Intelligent Battlefield Node
+#Project Sarv-Drishti: The Intelligent Battlefield Node
 
 Sarv-Drishti is the intelligent, integrating layer designed to bridge the gap between high-level command systems and the soldier on the ground. This project aims to develop a holistic digital ecosystem that serves as a real-time, AI-powered information hub for frontline personnel.
 
