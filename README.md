@@ -5,7 +5,7 @@ Build AI-powered solutions that enhance military operations, protect our borders
 #Sarv-Drishti is the intelligent, integrating layer designed to bridge the gap between high-level command systems and the soldier on the ground. This project aims to develop a holistic digital ecosystem that serves as a real-time, AI-powered information hub for frontline personnel.
 
 
-Google Drive link https://drive.google.com/drive/folders/1d5K1ARgDVSoYbfNKjFnCgRF25MlBjinR?zx=lj1gkim08lod
+For acessing all the files visit this Google Drive link https://drive.google.com/drive/folders/1d5K1ARgDVSoYbfNKjFnCgRF25MlBjinR?zx=lj1gkim08lod
 
 
 Project Sarv-Drishti: The Intelligent Battlefield Node
@@ -114,5 +114,5 @@ This is the essential next step in building a truly digital and intelligent Indi
 Project Sarv-Drishti is not about replacing our current systems; it's about unlocking their full potential. By providing AI-powered clarity and immediate intelligence, we empower our soldiers to be Smarter, Faster, and Safer on the modern battlefield.
 
 
-PPT link https://gamma.app/docs/Project-Sarv-Drishti-The-Intelligent-Battlefield-Node-yiuoixqj4fdzyri?mode=doc
+To Know more about this project visit this PPT link https://gamma.app/docs/Project-Sarv-Drishti-The-Intelligent-Battlefield-Node-yiuoixqj4fdzyri?mode=doc
 
